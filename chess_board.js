@@ -23,7 +23,7 @@ var PIECE_PAWN = 0,
 	BLACK_TEAM = 0,
 	WHITE_TEAM = 1,
 	SELECT_LINE_WIDTH = 5,
-	currentTurn = WHITE_TEAM,
+	currentTurn = BLACK_TEAM,
 	selectedPiece = null;
 
 function draw()
@@ -155,8 +155,8 @@ function screenToBlock(x, y) {
 
 function board_click(ev)
 {
-  var x = ev.clientX - canvas.offsetLeft;
-  var y = ev.clientY - canvas.offsetTop;
+  var x = ev.screenX;// - canvas.offsetLeft;
+  var y = ev.screenY;// - canvas.offsetTop;
 
   var clickedBlock = screenToBlock(x, y);
 
@@ -183,7 +183,7 @@ function checkIfPieceClicked(clickedBlock)
 
 function getPieceAtBlock(clickedBlock)
 {
-    var team = (currentTurn == BLACK_TEAM ? json.black:json.white);
+    var team = (currentTurn === BLACK_TEAM ? json.black:json.white);
 
     return getPieceAtBlockForTeam(team, clickedBlock);
 }
@@ -247,19 +247,20 @@ function processMove(clickedBlock)
         removeSelection(selectedPiece);
         checkIfPieceClicked(clickedBlock);
     }
-    else if (canSelectedMoveToBlock(selectPiece, clickedBlock, enemyPiece) === true)
+    else if (canSelectedMoveToBlock(selectedPiece, clickedBlock, enemyPiece) === true)
     {
         movePiece(clickedBlock, enemyPiece);
+        currentTurn = Math.abs(currentTurn-1);
     }
 }
 
-function canPawnMoveToBlock(selectPiece, clickedBlock, enemyPiece)
+function canPawnMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
 {
-  var rowToMoveTo = (currentTurn === WHITE_TEAM ? selectPiece.row + 1:selectPiece.row - 1),
-      adjacentEnemy = (clickedBlock.col === selectPiece.col - 1 ||
+  var rowToMoveTo = (currentTurn === WHITE_TEAM ? selectedPiece.row + 1:selectedPiece.row - 1),
+      adjacentEnemy = (clickedBlock.col === selectedPiece.col - 1 ||
           enemyPiece !== null),
-      nextRowEmpty = (clickedBlock.col === selectPiece.col &&
-          blockOccupied(clickedBlock) === false);
+      nextRowEmpty = (clickedBlock.col === selectedPiece.col &&
+          blockOccupiedByEnemy(clickedBlock) === null);
 
   return clickedBlock.row === rowToMoveTo &&
         (nextRowEmpty === true || adjacentEnemy === true);
