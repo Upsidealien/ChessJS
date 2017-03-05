@@ -155,8 +155,18 @@ function screenToBlock(x, y) {
 
 function board_click(ev)
 {
-  var x = ev.screenX;// - canvas.offsetLeft;
-  var y = ev.screenY;// - canvas.offsetTop;
+    var x;
+    var y;
+    if (ev.pageX || ev.pageY) {
+      x = ev.pageX;
+      y = ev.pageY;
+    }
+    else {
+      x = ev.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+      y = ev.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+    }
+    x -= canvas.offsetLeft;
+    y -= canvas.offsetTop;
 
   var clickedBlock = screenToBlock(x, y);
 
@@ -288,7 +298,7 @@ function movePiece(clickedBlock, enemyPiece)
   //Draw the piece in the new position
   drawPiece(selectedPiece, (currentTurn === BLACK_TEAM));
 
-  currenTurn = (currentTurn === WHITE_TEAM ? BLACK_TEAM:WHTIE_TEAM);
+  currenTurn = (currentTurn === WHITE_TEAM ? BLACK_TEAM:WHITE_TEAM);
 
   selectedPiece = null;
 }
