@@ -514,6 +514,14 @@ function canQueenMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
   return (canCastleMove || canBishopMove);
 }
 
+function canKingMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
+{
+    var numberOfRowsAway = Math.abs(selectedPiece.row - clickedBlock.row);
+    var numberOfColsAway = Math.abs(selectedPiece.col - clickedBlock.col);
+
+    return ((numberOfRowsAway<=1) && (numberOfColsAway<=1) && blockOccupiedByTeam(clickedBlock) === null)
+}
+
 
 function contains(allowedBlocks, clickedBlock) {
     for (var i = 0; i < allowedBlocks.length; i++) {
@@ -564,7 +572,7 @@ function canSelectedMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
 
         case PIECE_KING:
 
-            // TODO
+            bCanMove = canKingMoveToBlock(selectedPiece, clickedBlock, enemyPiece);
 
         break;
     }
