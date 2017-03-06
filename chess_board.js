@@ -2,8 +2,8 @@ var NUMBER_OF_COLS = 8,
 	NUMBER_OF_ROWS = 8,
 	BLOCK_SIZE = 100;
 
-var BLOCK_COLOUR_1 = '#9f7119',
-	BLOCK_COLOUR_2 = '#debf83',
+var BLOCK_COLOUR_1 = '#FFFFFF',
+	BLOCK_COLOUR_2 = '#A9A9A9',
 	HIGHLIGHT_COLOUR = '#fb0006';
 
 var piecePositions = null;
@@ -23,7 +23,7 @@ var PIECE_PAWN = 0,
 	BLACK_TEAM = 0,
 	WHITE_TEAM = 1,
 	SELECT_LINE_WIDTH = 5,
-	currentTurn = BLACK_TEAM,
+	currentTurn = WHITE_TEAM,
 	selectedPiece = null;
 
 function draw()
@@ -199,9 +199,19 @@ function getPieceAtBlock(clickedBlock)
 }
 
 function blockOccupiedByEnemy(clickedBlock) {
-	var team = (currentTurn === BLACK_TEAM ? json.white : json.black);
+	  var team = (currentTurn === BLACK_TEAM ? json.white : json.black);
 
-	return getPieceAtBlockForTeam(team, clickedBlock);
+    var blocked = getPieceAtBlockForTeam(team, clickedBlock);
+
+	  return blocked;
+}
+
+function blockOccupiedByTeam(clickedBlock) {
+    var team = (currentTurn === WHITE_TEAM ? json.white : json.black);
+
+    var blocked = getPieceAtBlockForTeam(team, clickedBlock);
+
+	  return blocked;
 }
 
 function removeSelection(selectedPiece) {
@@ -264,18 +274,6 @@ function processMove(clickedBlock)
     }
 }
 
-function canPawnMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
-{
-  var rowToMoveTo = (currentTurn === WHITE_TEAM ? selectedPiece.row + 1:selectedPiece.row - 1),
-      adjacentEnemy = (clickedBlock.col === selectedPiece.col - 1 ||
-          enemyPiece !== null),
-      nextRowEmpty = (clickedBlock.col === selectedPiece.col &&
-          blockOccupiedByEnemy(clickedBlock) === null);
-
-  return clickedBlock.row === rowToMoveTo &&
-        (nextRowEmpty === true || adjacentEnemy === true);
-}
-
 
 function movePiece(clickedBlock, enemyPiece)
 {
@@ -303,6 +301,231 @@ function movePiece(clickedBlock, enemyPiece)
   selectedPiece = null;
 }
 
+//Movement rules for pieces
+function canPawnMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
+{
+  var rowToMoveTo = (currentTurn === WHITE_TEAM ? selectedPiece.row + 1:selectedPiece.row - 1),
+      adjacentEnemy = (clickedBlock.col === selectedPiece.col - 1 ||
+          enemyPiece !== null),
+      nextRowEmpty = (clickedBlock.col === selectedPiece.col &&
+          blockOccupiedByEnemy(clickedBlock) === null);
+
+  return clickedBlock.row === rowToMoveTo &&
+        (nextRowEmpty === true || adjacentEnemy === true || clickedBlock.col === selectedPiece.col);
+}
+
+function canKnightMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
+{
+    var allowedMoves = [];
+
+    allowedMoves[0] = {row: (selectedPiece.row - 2), col: (selectedPiece.col - 1)};
+    allowedMoves[1] = {row: (selectedPiece.row - 2), col: (selectedPiece.col + 1)};
+    allowedMoves[2] = {row: (selectedPiece.row + 2), col: (selectedPiece.col - 1)};
+    allowedMoves[3] = {row: (selectedPiece.row + 2), col: (selectedPiece.col + 1)};
+    allowedMoves[4] = {row: (selectedPiece.row - 1), col: (selectedPiece.col - 2)};
+    allowedMoves[5] = {row: (selectedPiece.row - 1), col: (selectedPiece.col + 2)};
+    allowedMoves[6] = {row: (selectedPiece.row + 1), col: (selectedPiece.col - 2)};
+    allowedMoves[7] = {row: (selectedPiece.row + 1), col: (selectedPiece.col + 2)};
+
+    var canMove = contains(allowedMoves, clickedBlock);
+
+    return canMove;
+}
+
+function canCastleMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
+{
+    var allowedMoves = [];
+
+    //East
+    var blocked = false;
+    var counter = 1;
+    while(!blocked)
+    {
+        var inspectedBlock = {col:selectedPiece.col-counter, row:selectedPiece.row};
+
+        if ((blockOccupiedByEnemy(inspectedBlock) != null) || (blockOccupiedByTeam(inspectedBlock) != null) || (selectedPiece.col-counter) < 0)
+        {
+            if(blockOccupiedByEnemy(inspectedBlock) != null) {
+              allowedMoves[allowedMoves.length] = inspectedBlock;
+              blocked=true;
+            } else {
+              blocked=true;
+            }
+        } else {
+            allowedMoves[allowedMoves.length] = inspectedBlock;
+        }
+        counter++;
+    }
+    //West
+    blocked = false;
+    counter=1;
+    while(!blocked)
+    {
+        var inspectedBlock = {col:selectedPiece.col+counter, row:selectedPiece.row};
+        if ((blockOccupiedByEnemy(inspectedBlock) != null) || blockOccupiedByTeam(inspectedBlock) != null || (selectedPiece.col+counter) > 7)
+        {
+          if(blockOccupiedByEnemy(inspectedBlock) != null) {
+            allowedMoves[allowedMoves.length] = inspectedBlock;
+            blocked=true;
+          } else {
+            blocked=true;
+          }
+        } else {
+            allowedMoves[allowedMoves.length] = inspectedBlock;
+        }
+        counter++;
+    }
+    //North
+    blocked = false;
+    counter=1;
+    while(!blocked)
+    {
+        var inspectedBlock = {col:selectedPiece.col, row:selectedPiece.row+counter};
+        if ((blockOccupiedByEnemy(inspectedBlock) != null) || blockOccupiedByTeam(inspectedBlock) != null || (selectedPiece.row+counter) > 7)
+        {
+          if(blockOccupiedByEnemy(inspectedBlock) != null) {
+            allowedMoves[allowedMoves.length] = inspectedBlock;
+            blocked=true;
+          } else {
+            blocked=true;
+          }
+        } else {
+            allowedMoves[allowedMoves.length] = inspectedBlock;
+        }
+        counter++;
+    }
+    //South
+    blocked = false;
+    counter=1;
+    while(!blocked)
+    {
+        var inspectedBlock = {col:selectedPiece.col, row:selectedPiece.row-counter};
+        if ((blockOccupiedByEnemy(inspectedBlock) != null) || blockOccupiedByTeam(inspectedBlock) != null || (selectedPiece.row-counter) < 0)
+        {
+          if(blockOccupiedByEnemy(inspectedBlock) != null) {
+            allowedMoves[allowedMoves.length] = inspectedBlock;
+            blocked=true;
+          } else {
+            blocked=true;
+          }
+        } else {
+            allowedMoves[allowedMoves.length] = inspectedBlock;
+        }
+        counter++;
+    }
+
+    var canMove = contains(allowedMoves, clickedBlock);
+
+    return canMove;
+}
+
+function canBishopMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
+{
+  var allowedMoves = [];
+
+  //North-West
+  var blocked = false;
+  var counter = 1;
+  while(!blocked)
+  {
+      var inspectedBlock = {col:selectedPiece.col-counter, row:selectedPiece.row-counter};
+
+      if ((blockOccupiedByEnemy(inspectedBlock) != null) || (blockOccupiedByTeam(inspectedBlock) != null) || (selectedPiece.col-counter) < 0 || (selectedPiece.row-counter) < 0)
+      {
+          if(blockOccupiedByEnemy(inspectedBlock) != null) {
+            allowedMoves[allowedMoves.length] = inspectedBlock;
+            blocked=true;
+          } else {
+            blocked=true;
+          }
+      } else {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+      }
+      counter++;
+  }
+  //North-East
+  blocked = false;
+  counter=1;
+  while(!blocked)
+  {
+      var inspectedBlock = {col:selectedPiece.col+counter, row:selectedPiece.row-counter};
+      if ((blockOccupiedByEnemy(inspectedBlock) != null) || blockOccupiedByTeam(inspectedBlock) != null || (selectedPiece.col+counter) > 7 || (selectedPiece.row-counter) < 0)
+      {
+        if(blockOccupiedByEnemy(inspectedBlock) != null) {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+          blocked=true;
+        } else {
+          blocked=true;
+        }
+      } else {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+      }
+      counter++;
+  }
+  //South-West
+  blocked = false;
+  counter=1;
+  while(!blocked)
+  {
+      var inspectedBlock = {col:selectedPiece.col-counter, row:selectedPiece.row+counter};
+      if ((blockOccupiedByEnemy(inspectedBlock) != null) || blockOccupiedByTeam(inspectedBlock) != null || (selectedPiece.row+counter) > 7 || (selectedPiece.col-counter) < 0)
+      {
+        if(blockOccupiedByEnemy(inspectedBlock) != null) {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+          blocked=true;
+        } else {
+          blocked=true;
+        }
+      } else {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+      }
+      counter++;
+  }
+  //South-East
+  blocked = false;
+  counter=1;
+  while(!blocked)
+  {
+      var inspectedBlock = {col:selectedPiece.col+counter, row:selectedPiece.row+counter};
+      if ((blockOccupiedByEnemy(inspectedBlock) != null) || blockOccupiedByTeam(inspectedBlock) != null || (selectedPiece.row+counter) > 7 || (selectedPiece.col+counter) > 7)
+      {
+        if(blockOccupiedByEnemy(inspectedBlock) != null) {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+          blocked=true;
+        } else {
+          blocked=true;
+        }
+      } else {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+      }
+      counter++;
+  }
+
+  var canMove = contains(allowedMoves, clickedBlock);
+
+  return canMove;
+}
+
+function canQueenMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
+{
+    var canCastleMove = canCastleMoveToBlock(selectedPiece, clickedBlock, enemyPiece);
+    var canBishopMove = canBishopMoveToBlock(selectedPiece, clickedBlock, enemyPiece);
+
+  return (canCastleMove || canBishopMove);
+}
+
+
+function contains(allowedBlocks, clickedBlock) {
+    for (var i = 0; i < allowedBlocks.length; i++) {
+        var allowedRow = allowedBlocks[i].row;
+        var allowedCol = allowedBlocks[i].col;
+        if (allowedRow === clickedBlock.row && allowedCol === clickedBlock.col) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function canSelectedMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
 {
     var bCanMove = false;
@@ -317,25 +540,25 @@ function canSelectedMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
 
         case PIECE_CASTLE:
 
-            // TODO
+            bCanMove = canCastleMoveToBlock(selectedPiece, clickedBlock, enemyPiece);
 
         break;
 
         case PIECE_ROUKE:
 
-            // TODO
+            bCanMove = canKnightMoveToBlock(selectedPiece, clickedBlock, enemyPiece);
 
         break;
 
         case PIECE_BISHOP:
 
-            // TODO
+            bCanMove = canBishopMoveToBlock(selectedPiece, clickedBlock, enemyPiece);
 
         break;
 
         case PIECE_QUEEN:
 
-            // TODO
+            bCanMove = canQueenMoveToBlock(selectedPiece, clickedBlock, enemyPiece);
 
         break;
 
