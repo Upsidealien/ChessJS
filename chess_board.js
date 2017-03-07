@@ -305,13 +305,66 @@ function movePiece(clickedBlock, enemyPiece)
 function canPawnMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
 {
   var rowToMoveTo = (currentTurn === WHITE_TEAM ? selectedPiece.row + 1:selectedPiece.row - 1),
-      adjacentEnemy = (clickedBlock.col === selectedPiece.col - 1 ||
+      adjacentEnemy = ((clickedBlock.col === selectedPiece.col - 1 || clickedBlock.col === selectedPiece.col + 1) &&
           enemyPiece !== null),
       nextRowEmpty = (clickedBlock.col === selectedPiece.col &&
           blockOccupiedByEnemy(clickedBlock) === null);
 
-  return clickedBlock.row === rowToMoveTo &&
-        (nextRowEmpty === true || adjacentEnemy === true || clickedBlock.col === selectedPiece.col);
+  var firstMoveJump = false;
+
+  //Double jump on first pawn move
+	if (currentTurn === WHITE_TEAM && selectedPiece.row === 1 && clickedBlock.row === 3)
+  {
+      firstMoveJump = true;
+  }
+  if(currentTurn === BLACK_TEAM && selectedPiece.row === 6 && clickedBlock.row === 4)
+  {
+    firstMoveJump = true;
+  }
+
+  //En Passant
+  var enpassant = false;
+  var takenPiece;
+  if (currentTurn === WHITE_TEAM && selectedPiece.row === 4 && clickedBlock.row === 5 && (clickedBlock.col === selectedPiece.col - 1 || clickedBlock.col === selectedPiece.col + 1))
+  {
+    enemyToTake = blockOccupiedByEnemy({row:4, col:clickedBlock.col})
+    if (enemyToTake != null && enemyToTake.piece === 0)
+    {
+        enpassant = true;
+        takenPiece = enemyToTake;
+    }
+  }
+  if (currentTurn === BLACK_TEAM && selectedPiece.row === 5 && clickedBlock.row === 4 && (clickedBlock.col === selectedPiece.col - 1 || clickedBlock.col === selectedPiece.col + 1))
+  {
+    enemyToTake = blockOccupiedByEnemy({row:5, col:clickedBlock.col})
+    if (enemyToTake != null && enemyToTake.piece === 0)
+    {
+        enpassant = true;
+        takenPiece = enemyToTake;
+    }
+  }
+
+  if (clickedBlock.row === rowToMoveTo || firstMoveJump)
+  {
+    if (nextRowEmpty === true && clickedBlock.col === selectedPiece.col)
+    {
+      return true;
+    }
+    if (adjacentEnemy === true)
+    {
+      return true;
+    }
+    if (enpassant)
+    {
+      //Delete the pawn
+      var opposite = (currentTurn != WHITE_TEAM ? json.white:json.black);
+      drawBlock(takenPiece.col, takenPiece.row);
+      opposite[takenPiece.position].status = TAKEN;
+      //Say the move can happen
+      return true;
+    }
+    return false;
+  }
 }
 
 function canKnightMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
