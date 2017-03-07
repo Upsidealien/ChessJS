@@ -334,9 +334,9 @@ function canPawnMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
         takenPiece = enemyToTake;
     }
   }
-  if (currentTurn === BLACK_TEAM && selectedPiece.row === 5 && clickedBlock.row === 4 && (clickedBlock.col === selectedPiece.col - 1 || clickedBlock.col === selectedPiece.col + 1))
+  if (currentTurn === BLACK_TEAM && selectedPiece.row === 3 && clickedBlock.row === 2 && (clickedBlock.col === selectedPiece.col - 1 || clickedBlock.col === selectedPiece.col + 1))
   {
-    enemyToTake = blockOccupiedByEnemy({row:5, col:clickedBlock.col})
+    enemyToTake = blockOccupiedByEnemy({row:3, col:clickedBlock.col})
     if (enemyToTake != null && enemyToTake.piece === 0)
     {
         enpassant = true;
@@ -576,6 +576,19 @@ function canKingMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
 }
 
 
+function isKingInCheck()
+{
+    var team = (currentTurn === BLACK_TEAM ? json.black:json.white);
+
+    var king = team.filter(function( obj ) {
+      return obj.piece == 5;
+    })[0];
+
+    var oppositeTeam = (currentTurn === WHITE_TEAM ? json.black:json.white);
+
+    
+}
+
 function contains(allowedBlocks, clickedBlock) {
     for (var i = 0; i < allowedBlocks.length; i++) {
         var allowedRow = allowedBlocks[i].row;
@@ -626,6 +639,7 @@ function canSelectedMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
         case PIECE_KING:
 
             bCanMove = canKingMoveToBlock(selectedPiece, clickedBlock, enemyPiece);
+            kingChecked = isKingInCheck();
 
         break;
     }
