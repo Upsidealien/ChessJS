@@ -506,7 +506,6 @@ function getCastleMoves(selectedPiece)
   return allowedMoves;
 }
 
-
 function canCastleMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
 {
     var allowedMoves = getCastleMoves(selectedPiece);
@@ -640,16 +639,83 @@ function getKingMoves(selectedPiece)
       allowedMoves[6] = {row: (selectedPiece.row + 1), col: (selectedPiece.col)};
       allowedMoves[7] = {row: (selectedPiece.row + 1), col: (selectedPiece.col + 1)};
 
-      return allowedMoves;
+			//Castling
+      var castling = [];
+      if (currentTurn === WHITE_TEAM && selectedPiece.row === 0 && selectedPiece.col === 3)
+      {
+
+
+            //left hand castling
+            if(blockOccupiedByTeam({row: 0, col: 0}).piece === 1 && blockOccupiedByTeam({row: 0, col: 1}) === null && blockOccupiedByTeam({row: 0, col: 2}) === null)
+            {
+                  allowedMoves[allowedMoves.length] = {row: 0, col: 1};
+                  castling[castling.length] = {row: 0, col: 1};
+            }
+            //right hand castling
+            if(blockOccupiedByTeam({row: 0, col: 7}).piece === 1 && blockOccupiedByTeam({row: 0, col: 6}) === null && blockOccupiedByTeam({row: 0, col: 5}) === null && blockOccupiedByTeam({row: 0, col: 4}) === null)
+            {
+                  allowedMoves[allowedMoves.length] = {row: 0, col: 5};
+                  castling[castling.length] = {row: 0, col: 5};
+            }
+      }
+      if (currentTurn === BLACK_TEAM && selectedPiece.row === 7 && selectedPiece.col === 3)
+      {
+            //left hand castling
+            if(blockOccupiedByTeam({row: 7, col: 0}).piece === 1 && blockOccupiedByTeam({row: 7, col: 1}) === null && blockOccupiedByTeam({row: 7, col: 2}) === null)
+            {
+                  allowedMoves[allowedMoves.length] = {row: 7, col: 1};
+                  castling[castling.length] = {row: 7, col: 1};
+            }
+            //right hand castling
+            if(blockOccupiedByTeam({row: 7, col: 7}).piece === 1 && blockOccupiedByTeam({row: 7, col: 6}) === null && blockOccupiedByTeam({row: 7, col: 5}) === null && blockOccupiedByTeam({row: 7, col: 4}) === null)
+            {
+                  allowedMoves[allowedMoves.length] = {row: 7, col: 5};
+                  castling[castling.length] = {row: 7, col: 5};
+            }
+      }
+
+      return [allowedMoves, castling];
 }
 
-function canKingMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
+function canKingMoveToBlock(pieceSelected, clickedBlock, enemyPiece)
 {
-    var allowedMoves = getKingMoves(selectedPiece);
+    var moves = getKingMoves(pieceSelected);
+
+    var allowedMoves = moves[0];
+    var castling = moves[1];
+
+    if(castling.length > 0)
+    {
+      if (contains(castling, clickedBlock))
+      {
+          var team = (currentTurn === BLACK_TEAM ? json.black:json.white);
+          var castle;
+          var direction = 0;
+          if(clickedBlock.col === 1)
+          {
+            castle = team.filter(function(obj) {
+                return obj.col == 0 && obj.piece == 1;
+            });
+            direction = 1;
+          }
+          if(clickedBlock.col === 5)
+          {
+            castle = team.filter(function(obj) {
+                return obj.col == 7 && obj.piece == 1;
+            });
+            direction = -1;
+          }
+
+          movePiece(clickedBlock, null);
+          selectedPiece = castle[0];
+          clickedBlock = {row: selectedPiece.row, col: clickedBlock.col+direction};
+          movePiece(clickedBlock, null);
+      }
+
+    }
 
     return (contains(allowedMoves, clickedBlock) && blockOccupiedByTeam(clickedBlock) === null)
 }
-
 
 function isKingInCheck()
 {
