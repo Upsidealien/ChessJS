@@ -301,73 +301,102 @@ function movePiece(clickedBlock, enemyPiece)
   selectedPiece = null;
 }
 
-//Movement rules for pieces
-function canPawnMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
+function getPawnMoves(selectedPiece)
 {
-  var rowToMoveTo = (currentTurn === WHITE_TEAM ? selectedPiece.row + 1:selectedPiece.row - 1),
-      adjacentEnemy = ((clickedBlock.col === selectedPiece.col - 1 || clickedBlock.col === selectedPiece.col + 1) &&
-          enemyPiece !== null),
-      nextRowEmpty = (clickedBlock.col === selectedPiece.col &&
-          blockOccupiedByEnemy(clickedBlock) === null);
+    var allowedMoves = [];
 
-  var firstMoveJump = false;
+    var direction = (currentTurn === WHITE_TEAM ? 1: (-1));
 
-  //Double jump on first pawn move
-	if (currentTurn === WHITE_TEAM && selectedPiece.row === 1 && clickedBlock.row === 3)
-  {
-      firstMoveJump = true;
-  }
-  if(currentTurn === BLACK_TEAM && selectedPiece.row === 6 && clickedBlock.row === 4)
-  {
-    firstMoveJump = true;
-  }
+    //One step forward
+    var onSpaceAhead = {col:selectedPiece.col, row:selectedPiece.row+direction};
+    if (blockOccupiedByEnemy(onSpaceAhead) === null && blockOccupiedByTeam(onSpaceAhead) === null)
+    {
+        allowedMoves.push({col: selectedPiece.col, row: selectedPiece.row+direction});
+    }
 
-  //En Passant
-  var enpassant = false;
-  var takenPiece;
-  if (currentTurn === WHITE_TEAM && selectedPiece.row === 4 && clickedBlock.row === 5 && (clickedBlock.col === selectedPiece.col - 1 || clickedBlock.col === selectedPiece.col + 1))
-  {
-    enemyToTake = blockOccupiedByEnemy({row:4, col:clickedBlock.col})
-    if (enemyToTake != null && enemyToTake.piece === 0)
+    //Two step forward
+    var twoSpaceAhead = {col:selectedPiece.col, row:selectedPiece.row+(2*direction)};
+    if (blockOccupiedByEnemy(onSpaceAhead) === null && blockOccupiedByTeam(onSpaceAhead) === null && blockOccupiedByEnemy(twoSpaceAhead) === null && blockOccupiedByTeam(twoSpaceAhead) === null && (selectedPiece.row === 1 || selectedPiece.row === 6))
     {
-        enpassant = true;
-        takenPiece = enemyToTake;
+        allowedMoves.push({col: selectedPiece.col, row: selectedPiece.row+(2*direction)});
     }
-  }
-  if (currentTurn === BLACK_TEAM && selectedPiece.row === 3 && clickedBlock.row === 2 && (clickedBlock.col === selectedPiece.col - 1 || clickedBlock.col === selectedPiece.col + 1))
-  {
-    enemyToTake = blockOccupiedByEnemy({row:3, col:clickedBlock.col})
-    if (enemyToTake != null && enemyToTake.piece === 0)
-    {
-        enpassant = true;
-        takenPiece = enemyToTake;
-    }
-  }
 
-  if (clickedBlock.row === rowToMoveTo || firstMoveJump)
-  {
-    if (nextRowEmpty === true && clickedBlock.col === selectedPiece.col)
+    //Taking a piece
+    var attack1 = {col:selectedPiece.col-1, row:selectedPiece.row+direction};
+    var attack2 = {col:selectedPiece.col+1, row:selectedPiece.row+direction};
+    if (blockOccupiedByEnemy(attack1) !== null)
     {
-      return true;
+        allowedMoves.push(attack1);
     }
-    if (adjacentEnemy === true)
+    if (blockOccupiedByEnemy(attack2) !== null)
     {
-      return true;
+        allowedMoves.push(attack2);
     }
-    if (enpassant)
+
+    //En Passant
+    var enpassant = [];
+    if (currentTurn === WHITE_TEAM && selectedPiece.row === 4)
     {
-      //Delete the pawn
-      var opposite = (currentTurn != WHITE_TEAM ? json.white:json.black);
-      drawBlock(takenPiece.col, takenPiece.row);
-      opposite[takenPiece.position].status = TAKEN;
-      //Say the move can happen
-      return true;
+      var enemyToTake1 = blockOccupiedByEnemy({row: 4, col: selectedPiece.col-1})
+      if (enemyToTake1 !== null && enemyToTake1.piece === 0)
+      {
+          allowedMoves.push({row: 4+direction, col: selectedPiece.col-1});
+          enpassant.push(enemyToTake1);
+      }
+      var enemyToTake2 = blockOccupiedByEnemy({row: 4, col: selectedPiece.col+1})
+      if (enemyToTake2 !== null && enemyToTake2.piece === 0)
+      {
+          allowedMoves.push({row: 4+direction, col: selectedPiece.col+1});
+          enpassant.push(enemyToTake2);
+      }
     }
-    return false;
-  }
+
+    if (currentTurn === BLACK_TEAM && selectedPiece.row === 3)
+    {
+      var enemyToTake1 = blockOccupiedByEnemy({row: 3, col: selectedPiece.col-1})
+      if (enemyToTake1 !== null && enemyToTake1.piece === 0)
+      {
+          allowedMoves.push({row: 3+direction, col: selectedPiece.col-1});
+          enpassant.push(enemyToTake1);
+      }
+      var enemyToTake2 = blockOccupiedByEnemy({row: 3, col: selectedPiece.col+1})
+      if (enemyToTake2 !== null && enemyToTake2.piece === 0)
+      {
+          allowedMoves.push({row: 3+direction, col: selectedPiece.col+1});
+          enpassant.push(enemyToTake2);
+      }
+    }
+
+    return [allowedMoves, enpassant];
+
 }
 
-function canKnightMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
+function canPawnMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
+{
+    var allowedMoves = getPawnMoves(selectedPiece)[0];
+    var enpassant = getPawnMoves(selectedPiece)[1];
+
+    var canMove = contains(allowedMoves, clickedBlock);
+
+    if(enpassant.length > 0)
+    {
+      if (selectedPiece.col !== clickedBlock.col)
+      {
+        var oppositeTeam = (currentTurn === WHITE_TEAM ? json.black:json.white);
+
+        var pieceToDelete = oppositeTeam.filter(function( obj ) {
+            return (obj.col == clickedBlock.col && obj.row == selectedPiece.row);
+        })[0];
+
+        drawBlock(pieceToDelete.col, pieceToDelete.row);
+        oppositeTeam[pieceToDelete.position].status = TAKEN;
+      }
+    }
+
+    return canMove;
+}
+
+function getKnightMoves(selectedPiece)
 {
     var allowedMoves = [];
 
@@ -380,101 +409,116 @@ function canKnightMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
     allowedMoves[6] = {row: (selectedPiece.row + 1), col: (selectedPiece.col - 2)};
     allowedMoves[7] = {row: (selectedPiece.row + 1), col: (selectedPiece.col + 2)};
 
+    return allowedMoves;
+}
+
+function canKnightMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
+{
+    var allowedMoves = getKnightMoves(selectedPiece)
+
     var canMove = contains(allowedMoves, clickedBlock);
 
     return canMove;
 }
+
+function getCastleMoves(selectedPiece)
+{
+  var allowedMoves = [];
+
+  //East
+  var blocked = false;
+  var counter = 1;
+  while(!blocked)
+  {
+      var inspectedBlock = {col:selectedPiece.col-counter, row:selectedPiece.row};
+
+      if ((blockOccupiedByEnemy(inspectedBlock) != null) || (blockOccupiedByTeam(inspectedBlock) != null) || (selectedPiece.col-counter) < 0)
+      {
+          if(blockOccupiedByEnemy(inspectedBlock) != null) {
+            allowedMoves[allowedMoves.length] = inspectedBlock;
+            blocked=true;
+          } else {
+            blocked=true;
+          }
+      } else {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+      }
+      counter++;
+  }
+  //West
+  blocked = false;
+  counter=1;
+  while(!blocked)
+  {
+      var inspectedBlock = {col:selectedPiece.col+counter, row:selectedPiece.row};
+      if ((blockOccupiedByEnemy(inspectedBlock) != null) || blockOccupiedByTeam(inspectedBlock) != null || (selectedPiece.col+counter) > 7)
+      {
+        if(blockOccupiedByEnemy(inspectedBlock) != null) {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+          blocked=true;
+        } else {
+          blocked=true;
+        }
+      } else {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+      }
+      counter++;
+  }
+  //North
+  blocked = false;
+  counter=1;
+  while(!blocked)
+  {
+      var inspectedBlock = {col:selectedPiece.col, row:selectedPiece.row+counter};
+      if ((blockOccupiedByEnemy(inspectedBlock) != null) || blockOccupiedByTeam(inspectedBlock) != null || (selectedPiece.row+counter) > 7)
+      {
+        if(blockOccupiedByEnemy(inspectedBlock) != null) {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+          blocked=true;
+        } else {
+          blocked=true;
+        }
+      } else {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+      }
+      counter++;
+  }
+  //South
+  blocked = false;
+  counter=1;
+  while(!blocked)
+  {
+      var inspectedBlock = {col:selectedPiece.col, row:selectedPiece.row-counter};
+      if ((blockOccupiedByEnemy(inspectedBlock) != null) || blockOccupiedByTeam(inspectedBlock) != null || (selectedPiece.row-counter) < 0)
+      {
+        if(blockOccupiedByEnemy(inspectedBlock) != null) {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+          blocked=true;
+        } else {
+          blocked=true;
+        }
+      } else {
+          allowedMoves[allowedMoves.length] = inspectedBlock;
+      }
+      counter++;
+  }
+
+  return allowedMoves;
+}
+
 
 function canCastleMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
 {
-    var allowedMoves = [];
-
-    //East
-    var blocked = false;
-    var counter = 1;
-    while(!blocked)
-    {
-        var inspectedBlock = {col:selectedPiece.col-counter, row:selectedPiece.row};
-
-        if ((blockOccupiedByEnemy(inspectedBlock) != null) || (blockOccupiedByTeam(inspectedBlock) != null) || (selectedPiece.col-counter) < 0)
-        {
-            if(blockOccupiedByEnemy(inspectedBlock) != null) {
-              allowedMoves[allowedMoves.length] = inspectedBlock;
-              blocked=true;
-            } else {
-              blocked=true;
-            }
-        } else {
-            allowedMoves[allowedMoves.length] = inspectedBlock;
-        }
-        counter++;
-    }
-    //West
-    blocked = false;
-    counter=1;
-    while(!blocked)
-    {
-        var inspectedBlock = {col:selectedPiece.col+counter, row:selectedPiece.row};
-        if ((blockOccupiedByEnemy(inspectedBlock) != null) || blockOccupiedByTeam(inspectedBlock) != null || (selectedPiece.col+counter) > 7)
-        {
-          if(blockOccupiedByEnemy(inspectedBlock) != null) {
-            allowedMoves[allowedMoves.length] = inspectedBlock;
-            blocked=true;
-          } else {
-            blocked=true;
-          }
-        } else {
-            allowedMoves[allowedMoves.length] = inspectedBlock;
-        }
-        counter++;
-    }
-    //North
-    blocked = false;
-    counter=1;
-    while(!blocked)
-    {
-        var inspectedBlock = {col:selectedPiece.col, row:selectedPiece.row+counter};
-        if ((blockOccupiedByEnemy(inspectedBlock) != null) || blockOccupiedByTeam(inspectedBlock) != null || (selectedPiece.row+counter) > 7)
-        {
-          if(blockOccupiedByEnemy(inspectedBlock) != null) {
-            allowedMoves[allowedMoves.length] = inspectedBlock;
-            blocked=true;
-          } else {
-            blocked=true;
-          }
-        } else {
-            allowedMoves[allowedMoves.length] = inspectedBlock;
-        }
-        counter++;
-    }
-    //South
-    blocked = false;
-    counter=1;
-    while(!blocked)
-    {
-        var inspectedBlock = {col:selectedPiece.col, row:selectedPiece.row-counter};
-        if ((blockOccupiedByEnemy(inspectedBlock) != null) || blockOccupiedByTeam(inspectedBlock) != null || (selectedPiece.row-counter) < 0)
-        {
-          if(blockOccupiedByEnemy(inspectedBlock) != null) {
-            allowedMoves[allowedMoves.length] = inspectedBlock;
-            blocked=true;
-          } else {
-            blocked=true;
-          }
-        } else {
-            allowedMoves[allowedMoves.length] = inspectedBlock;
-        }
-        counter++;
-    }
+    var allowedMoves = getCastleMoves(selectedPiece);
 
     var canMove = contains(allowedMoves, clickedBlock);
 
     return canMove;
 }
 
-function canBishopMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
+function getBishopMoves(selectedPiece)
 {
-  var allowedMoves = [];
+	var allowedMoves = [];
 
   //North-West
   var blocked = false;
@@ -554,25 +598,56 @@ function canBishopMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
       counter++;
   }
 
+  return allowedMoves;
+}
+
+function canBishopMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
+{
+  var allowedMoves = getBishopMoves(selectedPiece);
+
   var canMove = contains(allowedMoves, clickedBlock);
 
   return canMove;
 }
 
+function getQueenMoves(selectedPiece)
+{
+    var allowedMoves = getBishopMoves(selectedPiece);
+    allowedMoves.push.apply(allowedMoves, getCastleMoves(selectedPiece));
+
+    return allowedMoves;
+}
+
 function canQueenMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
 {
-    var canCastleMove = canCastleMoveToBlock(selectedPiece, clickedBlock, enemyPiece);
-    var canBishopMove = canBishopMoveToBlock(selectedPiece, clickedBlock, enemyPiece);
+    var allowedMoves = getQueenMoves(selectedPiece);
 
-  return (canCastleMove || canBishopMove);
+    var canMove = contains(allowedMoves, clickedBlock);
+
+    return canMove;
+}
+
+function getKingMoves(selectedPiece)
+{
+      var allowedMoves = [];
+
+      allowedMoves[0] = {row: (selectedPiece.row - 1), col: (selectedPiece.col - 1)};
+      allowedMoves[1] = {row: (selectedPiece.row - 1), col: (selectedPiece.col)};
+      allowedMoves[2] = {row: (selectedPiece.row - 1), col: (selectedPiece.col + 1)};
+      allowedMoves[3] = {row: (selectedPiece.row), col: (selectedPiece.col - 1)};
+      allowedMoves[4] = {row: (selectedPiece.row), col: (selectedPiece.col + 1)};
+      allowedMoves[5] = {row: (selectedPiece.row + 1), col: (selectedPiece.col - 1)};
+      allowedMoves[6] = {row: (selectedPiece.row + 1), col: (selectedPiece.col)};
+      allowedMoves[7] = {row: (selectedPiece.row + 1), col: (selectedPiece.col + 1)};
+
+      return allowedMoves;
 }
 
 function canKingMoveToBlock(selectedPiece, clickedBlock, enemyPiece)
 {
-    var numberOfRowsAway = Math.abs(selectedPiece.row - clickedBlock.row);
-    var numberOfColsAway = Math.abs(selectedPiece.col - clickedBlock.col);
+    var allowedMoves = getKingMoves(selectedPiece);
 
-    return ((numberOfRowsAway<=1) && (numberOfColsAway<=1) && blockOccupiedByTeam(clickedBlock) === null)
+    return (contains(allowedMoves, clickedBlock) && blockOccupiedByTeam(clickedBlock) === null)
 }
 
 
@@ -581,12 +656,82 @@ function isKingInCheck()
     var team = (currentTurn === BLACK_TEAM ? json.black:json.white);
 
     var king = team.filter(function( obj ) {
-      return obj.piece == 5;
+        return obj.piece == 5;
     })[0];
 
     var oppositeTeam = (currentTurn === WHITE_TEAM ? json.black:json.white);
 
-    
+    /*
+      Go through all pieces and see if they are putting the king in check
+    */
+    var oppositeTeamInPlay = oppositeTeam.filter(function(obj) {
+        return obj.status == 0;
+    });
+
+    var oppsiteTeamPawns = oppositeTeamInPlay.filter(function(obj) {
+        return obj.piece == 0;
+    });
+
+    var oppositeTeamCastles = oppositeTeamInPlay.filter(function(obj) {
+        return obj.piece == 1;
+    });
+
+    var oppositeTeamKnights = oppositeTeamInPlay.filter(function(obj) {
+        return obj.piece == 2;
+    });
+
+    var oppositeTeamBishops = oppositeTeamInPlay.filter(function(obj) {
+        return obj.piece == 3;
+    });
+
+    var oppositeTeamKing = oppositeTeamInPlay.filter(function(obj) {
+        return obj.piece == 5;
+    });
+
+    var oppositeTeamQueen = oppositeTeamInPlay.filter(function(obj) {
+        return obj.piece == 4;
+    });
+
+
+    var checkedBlocks = [];
+
+    currentTurn = Math.abs(currentTurn-1);
+    for(var i=0; i < oppsiteTeamPawns.length; i++) {
+          var moves = getPawnMoves(oppsiteTeamPawns[i])[0];
+
+          var attackingMoves = moves.filter(function( obj ) {
+              return (obj.col !== oppsiteTeamPawns[i].col);
+          });
+
+          checkedBlocks.push.apply(checkedBlocks, attackingMoves);
+    }
+
+    for(var i=0; i < oppositeTeamCastles.length; i++) {
+        checkedBlocks.push.apply(checkedBlocks, getCastleMoves(oppositeTeamCastles[i]));
+    }
+
+    for(var i=0; i < oppositeTeamKnights.length; i++) {
+        checkedBlocks.push.apply(checkedBlocks, getKnightMoves(oppositeTeamKnights[i]));
+    }
+
+    for(var i=0; i < oppositeTeamBishops.length; i++) {
+        checkedBlocks.push.apply(checkedBlocks, getBishopMoves(oppositeTeamBishops[i]));
+    }
+
+
+    for(var i=0; i < oppositeTeamQueen.length; i++) {
+        checkedBlocks.push.apply(checkedBlocks, getQueenMoves(oppositeTeamQueen[i]));
+    }
+
+    for(var i=0; i < oppositeTeamKing.length; i++) {
+        checkedBlocks.push.apply(checkedBlocks, getKingMoves(oppositeTeamKing[i]));
+    }
+    currentTurn = Math.abs(currentTurn-1);
+
+
+    var inCheck = contains(checkedBlocks, king);
+
+    return inCheck;
 }
 
 function contains(allowedBlocks, clickedBlock) {
