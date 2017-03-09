@@ -259,6 +259,12 @@ function selectPiece(pieceAtBlock)
 
 function processMove(clickedBlock)
 {
+    var oldSelectedPieceRow = selectedPiece.row;
+    var oldSelectedPieceCol = selectedPiece.col;
+    var oldSelectedPiecePiece = selectedPiece.piece;
+    var oldSelectedPiecePosition = selectedPiece.position;
+    var oldSelectedPiece = selectedPiece;
+
     var pieceAtBlock = getPieceAtBlock(clickedBlock),
         enemyPiece = blockOccupiedByEnemy(clickedBlock);
 
@@ -270,7 +276,16 @@ function processMove(clickedBlock)
     else if (canSelectedMoveToBlock(selectedPiece, clickedBlock, enemyPiece) === true)
     {
         movePiece(clickedBlock, enemyPiece);
-        currentTurn = Math.abs(currentTurn-1);
+
+        if(isKingInCheck())
+        {
+            selectedPiece = oldSelectedPiece;
+            moveBackBlock = {row: oldSelectedPieceRow, col: oldSelectedPieceCol};
+            movePiece(moveBackBlock, enemyPiece);
+        } else {
+            currentTurn = Math.abs(currentTurn-1);
+        }
+
     }
 }
 
